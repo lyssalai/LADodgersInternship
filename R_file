@@ -37,39 +37,26 @@ attach(bikedata_2011test)
 # Scatterplot Matrix of Relationships Between Y and X Variables
 scatterplotMatrix(~count + temperature + holiday + workingday + weathersit + humidity + windspeed)
 pairs(~count + temperature + holiday + workingday + weathersit + humidity + windspeed,data=bikedata,gap=0.4, pch = 19, cex = 0.1)
-
 X <- cbind(count, temperature, holiday, workingday, weathersit, humidity, windspeed)
 c <- cor(X)
 round(c, 3)
 
-# Perform Multiple Linear Regression 
+# Modelling Raw Data Multiple Linear Regression
 model_mls <- lm(count ~ temperature + weathersit + windspeed)
 summary(model_mls)
 
-# Perform Quatratic Multiple Linear Regression 
+# Quadratic Transformation on Multiple Linear Regression
 model_qmls <- lm(count ~ temperature + I(temperature^2) + weathersit + windspeed)
 summary(model_qmls)
-```
 
-
-```{r}
+# Scatterplot Matrix with ONLY Selected Variables
 scatterplotMatrix(~count + temperature + weathersit  + windspeed)
-
 pairs(~count + temperature + weathersit + windspeed,data=bikedata_2011test, gap=0.4, pch = 19, cex = 0.1)
-```
-
-```{r}
 X <- cbind(count, temperature, weathersit, windspeed)
 c <- cor(X)
 round(c, 3)
-```
 
-
-
-
-
-```{r}
-# Standarized Residuals VS. total count
+# Standarizing Residuals Against Y Variable
 StanResQMLS <- rstandard(model_qmls)
 StanResMLS <- rstandard(model_mls)
 par(mfrow=c(1,1))
