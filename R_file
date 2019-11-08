@@ -1,0 +1,139 @@
+library(tidyverse)
+library(carData)
+library(car)
+
+bikedata <- read.csv("day.csv",header=T)
+
+# Assign Variable Names
+temperature = as.numeric(as.character(bikedata$temp))
+casual_user = as.numeric(as.character(bikedata$casual))
+registered_user = as.numeric(as.character(bikedata$registered))
+count = as.numeric(as.character(bikedata$cnt))
+humidity = as.numeric(as.character(bikedata$hum))
+holiday = as.numeric(as.character(bikedata$holiday))
+season = as.numeric(as.character(bikedata$season))
+windspeed = as.numeric(as.character(bikedata$windspeed))
+weekday = as.numeric(as.character(bikedata$weekday))
+workingday = as.numeric(as.character(bikedata$workingday))
+weathersit = as.numeric(as.character(bikedata$weathersit))
+date = as.Date(bikedata$dteday, "%Y-%m-%d")
+month = as.numeric(as.character(bikedata$mnth))
+year = as.numeric(as.character(bikedata$yr))
+
+# Compile Data into Dataframe
+bikedata <- data.frame(temperature, casual_user, registered_user, count,
+                       humidity, holiday, season, windspeed, weekday,
+                       workingday, weathersit, date, month, year)
+
+rm(temperature, casual_user, registered_user, count,
+    humidity, holiday, season, windspeed, weekday,
+    workingday, weathersit, date, month, year)
+    
+# Divide Data Into Training and Validation Sets
+bikedata_2011test = bikedata[(bikedata$date >= "2011-01-01" & bikedata$date <= "2011-12-31"),]
+bikedata_2012validation = bikedata[(bikedata$date >= "2012-01-01" & bikedata$date <= "2012-12-31"),]
+attach(bikedata_2011test)  
+
+# Scatterplot Matrix of Relationships Between Y and X Variables
+scatterplotMatrix(~count + temperature + holiday + workingday + weathersit + humidity + windspeed)
+pairs(~count + temperature + holiday + workingday + weathersit + humidity + windspeed,data=bikedata,gap=0.4, pch = 19, cex = 0.1)
+
+X <- cbind(count, temperature, holiday, workingday, weathersit, humidity, windspeed)
+c <- cor(X)
+round(c, 3)
+
+# Perform Multiple Linear Regression 
+model_mls <- lm(count ~ temperature + weathersit + windspeed)
+summary(model_mls)
+
+# Perform Quatratic Multiple Linear Regression 
+model_qmls <- lm(count ~ temperature + I(temperature^2) + weathersit + windspeed)
+summary(model_qmls)
+```
+
+
+```{r}
+scatterplotMatrix(~count + temperature + weathersit  + windspeed)
+
+pairs(~count + temperature + weathersit + windspeed,data=bikedata_2011test, gap=0.4, pch = 19, cex = 0.1)
+```
+
+```{r}
+X <- cbind(count, temperature, weathersit, windspeed)
+c <- cor(X)
+round(c, 3)
+```
+
+
+
+
+
+```{r}
+# Standarized Residuals VS. total count
+StanResQMLS <- rstandard(model_qmls)
+StanResMLS <- rstandard(model_mls)
+par(mfrow=c(1,1))
+plot(count,StanResMLS, xlab="total_count", ylab="Standardized Residuals", col="red", pch=19, cex = 0.5)
+points(count,StanResQMLS,xlab="total_count", ylab="Standardized Residuals", col="blue", pch = 19, cex = 0.5)
+abline(h=2,lty=2)
+abline(h=-2,lty=2)
+legend(5000, -1.5, legend=c("Ord LS","Quad LS"), col=c("red","blue"), lty=0, cex=1, pch=19)
+```
+
+```{r}
+# Standarized Residuals VS. fitted values
+par(mfrow=c(1,1))
+plot(fitted(model_mls),StanResMLS,xlab="Fitted values", ylab="Standardized Residuals",col="red", pch = 19, cex = 0.5)
+points(fitted(model_qmls),StanResQMLS, xlab="Fitted values", ylab="Standardized Residuals",col="blue", pch = 19, cex = 0.5)
+abline(h=2,lty=2)
+abline(h=-2,lty=2)
+legend(600, -1.5, legend=c("Ord LS","Quad LS"), col=c("red","blue"), lty=0, cex=1, pch=19)
+```
+
+```{r}
+# Test of Normality for Standarized Residuals of QMLS
+q1 <- qqnorm(StanResQMLS, plot.it = FALSE)
+plot(range(q1$x, q1$x), range(q1$y, q1$y), ylab = "Standardized Residuals", xlab = "Theoretical Quantiles" ) 
+points(q1)
+points(q1,col="blue", pch = 19, cex = 0.5)
+qqline(StanResQMLS,lty = 2)
+legend(2, 0, legend=c("QMLS"), col=c("blue"), lty=0, cex=1, pch=19)
+```
+
+
+```{r}
+# Histogram
+par(mfrow=c(1,1))
+hist(StanResQMLS,100)
+```
+
+```{r}
+# Residuals for training data
+ResQMLS <- resid(model_qmls)
+
+# Residuals for validation data
+output <-predict(model_qmls, se.fit = TRUE, newdata=data.frame(count=bikedata_2012validation$count, temperature=bikedata_2012validation$temperature, windspeed=bikedata_2012validation$windspeed, weathersit=bikedata_2012validation$weathersit))
+ResQMLSValidation <- bikedata_2012validation$count - output$fit
+
+# Plot residuals
+par(mfrow=c(1,1))
+plot(count,ResQMLS,xlab="Count", ylab="Residuals", ylim=c(min(ResQMLS,ResQMLSValidation),max(ResQMLS,ResQMLSValidation)),  col=c("blue"), lty=0, cex=1, pch=19)
+points(bikedata_2012validation$count,ResQMLSValidation,xlab="Count", ylab="Residuals",col="red", lty=0, cex=1, pch=19)
+legend(500, 4000, legend=c("Training","Validation"), col=c("blue","red"), lty=0, cex=1, pch=19)
+```
+
+
+```{r}
+# Mean Square Error for training data
+mean((ResQMLS)^2)
+
+# Mean Square Error for validation data
+mean((ResQMLSValidation)^2)
+
+# Relative Mean Square Error for validation data
+mean((ResQMLSValidation)^2) / mean((bikedata_2012validation$count)^2)
+
+
+```
+
+
