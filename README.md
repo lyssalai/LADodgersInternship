@@ -1,2 +1,1 @@
-# LADodgersInternship
-Internship Application Segment for LA Dodgers Internship - Quantitative Analysis Intership
+# MA575 Linear Models Code
